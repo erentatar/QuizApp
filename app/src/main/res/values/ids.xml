@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="editText_Id" type="id"></item>
+    <item name="radioGroup_Id" type="id"></item>
+    <item name="listView_Id" type="id"></item>
+</resources>
