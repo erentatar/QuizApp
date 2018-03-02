@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.SparseBooleanArray;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -23,12 +24,12 @@ public class MainActivity extends AppCompatActivity {
     QuestionLibrary questionLibrary = new QuestionLibrary();
     Question question;
 
-    private int score = 0;
+    private int score;
+    private int numOfChoices;
     private int questionNum = 1;
-    private int numOfChoices = 0;
     private int questionCount = questionLibrary.getQuestionCount();
 
-    private Boolean calculated = false;
+    private Boolean calculated;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,28 +41,28 @@ public class MainActivity extends AppCompatActivity {
     private void displayQuestion(int num) {
         setContentView(R.layout.activity_main);
 
-        layoutChoice = (LinearLayout) findViewById(R.id.layoutChoice);
+        layoutChoice = findViewById(R.id.layoutChoice);
         question = questionLibrary.getQuestionList().get(num - 1);
-        numOfChoices = question.choices.size();
+        numOfChoices = question.getChoices().size();
         calculated = false;
 
-        TextView txtQuestionNumber = (TextView) findViewById(R.id.txtQuestionNumber);
-        txtQuestionNumber.setText("Question " + num + " of " + questionCount);
+        TextView txtQuestionNumber = findViewById(R.id.txtQuestionNumber);
+        txtQuestionNumber.setText(String.format("Question %1$d of %2$d", num, questionCount));
 
-        TextView txtQuestionText = (TextView) findViewById(R.id.txtQuestionText);
-        txtQuestionText.setText(question.questionText);
+        TextView txtQuestionText = findViewById(R.id.txtQuestionText);
+        txtQuestionText.setText(question.getQuestionText());
 
-        ImageView imgQuestion = (ImageView) findViewById(R.id.imgQuestion);
-        int resourceId = getResources().getIdentifier(question.imageName, "drawable", getPackageName());
+        ImageView imgQuestion = findViewById(R.id.imgQuestion);
+        int resourceId = getResources().getIdentifier(question.getImageName(), "drawable", getPackageName());
         imgQuestion.setImageResource(resourceId);
 
-        if (question.questionType == QuestionType.MultipleChoice) {
+        if (question.getQuestionType() == QuestionType.MultipleChoice) {
             addListView();
-        } else if (question.questionType == QuestionType.SingleChoice) {
+        } else if (question.getQuestionType() == QuestionType.SingleChoice) {
             addRadioGroup();
-        } else if (question.questionType == QuestionType.Text) {
+        } else if (question.getQuestionType() == QuestionType.Text) {
             addEditText();
-        } else if (question.questionType == QuestionType.YesNo) {
+        } else if (question.getQuestionType() == QuestionType.YesNo) {
             addRadioGroup();
         }
     }
@@ -70,8 +71,30 @@ public class MainActivity extends AppCompatActivity {
         ListView listView = new ListView(this);
         listView.setId(R.id.listView_Id);
         listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, question.choices);
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_multiple_choice, question.getChoices());
         listView.setAdapter(arrayAdapter);
+
+        //To achieve scrolling functionality properly in the case that nested scrolling situation happens.
+        listView.setOnTouchListener(new ListView.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Disallow ScrollView to intercept touch events.
+                        v.getParent().requestDisallowInterceptTouchEvent(true);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        // Allow ScrollView to intercept touch events.
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                // Handle ListView touch events.
+                v.onTouchEvent(event);
+                return true;
+            }
+        });
+
         layoutChoice.addView(listView);
     }
 
@@ -83,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < numOfChoices; i++) {
             RadioButton radioButton = new RadioButton(this);
             radioButton.setId(1000 + i);
-            radioButton.setText(question.choices.get(i));
+            radioButton.setText(question.getChoices().get(i));
             radioGroup.addView(radioButton);
         }
         layoutChoice.addView(radioGroup);
@@ -107,12 +130,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (calculated && questionNum == questionCount)
-            Toast.makeText(this, String.format("Finished with %s correct answer(s)!", score), Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, String.format("Your score: %1$d out of %2$d", score, questionCount), Toast.LENGTH_LONG).show();
     }
 
     private void calculateScore() {
-        if (question.questionType == QuestionType.MultipleChoice) {
-            ListView listView = (ListView) findViewById(R.id.listView_Id);
+        if (question.getQuestionType() == QuestionType.MultipleChoice) {
+            ListView listView = findViewById(R.id.listView_Id);
             SparseBooleanArray sparseBooleanArray = listView.getCheckedItemPositions();
             if (sparseBooleanArray.size() == 0) return;
             int numOfCorrectAnswers = 0;
@@ -120,36 +143,41 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < sparseBooleanArray.size(); i++) {
                 int key = sparseBooleanArray.keyAt(i);
                 if (sparseBooleanArray.get(key))
-                    if (question.answers.contains(listView.getItemAtPosition(key).toString()))
+                    if (question.getAnswers().contains(listView.getItemAtPosition(key).toString()))
                         numOfCorrectAnswers++;
+                    else {
+                        //if there exists at least one checked incorrect answer
+                        numOfCorrectAnswers = 0;
+                        break;
+                    }
             }
 
-            if (numOfCorrectAnswers == question.answers.size())
+            if (numOfCorrectAnswers == question.getAnswers().size())
                 score++;
 
-        } else if (question.questionType == QuestionType.SingleChoice) {
-            RadioGroup radioGroup = (RadioGroup) findViewById(R.id.radioGroup_Id);
+        } else if (question.getQuestionType() == QuestionType.SingleChoice) {
+            RadioGroup radioGroup = findViewById(R.id.radioGroup_Id);
             int checkedId = radioGroup.getCheckedRadioButtonId();
             if (checkedId == -1) return;
-            RadioButton radioButton = (RadioButton) radioGroup.findViewById(checkedId);
+            RadioButton radioButton = radioGroup.findViewById(checkedId);
             String answer = radioButton.getText().toString();
-            if (question.answers.contains(answer))
+            if (question.getAnswers().contains(answer))
                 score++;
 
-        } else if (question.questionType == QuestionType.Text) {
-            EditText editText = (EditText) findViewById(R.id.editText_Id);
-            String answer = editText.getText().toString();
-            if (answer == null || answer.trim().isEmpty()) return;
-            if (question.answers.contains(answer))
+        } else if (question.getQuestionType() == QuestionType.Text) {
+            EditText editText = findViewById(R.id.editText_Id);
+            String answer = editText.getText().toString().trim();
+            if (answer.isEmpty()) return;
+            if (question.getAnswers().get(0).equalsIgnoreCase(answer))
                 score++;
 
-        } else if (question.questionType == QuestionType.YesNo) {
-            RadioGroup radioGroup = (RadioGroup) findViewById(R.id.radioGroup_Id);
+        } else if (question.getQuestionType() == QuestionType.YesNo) {
+            RadioGroup radioGroup = findViewById(R.id.radioGroup_Id);
             int checkedId = radioGroup.getCheckedRadioButtonId();
             if (checkedId == -1) return;
-            RadioButton radioButton = (RadioButton) radioGroup.findViewById(checkedId);
+            RadioButton radioButton = radioGroup.findViewById(checkedId);
             String answer = radioButton.getText().toString();
-            if (question.answers.contains(answer))
+            if (question.getAnswers().contains(answer))
                 score++;
         }
 

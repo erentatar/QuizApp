@@ -2,19 +2,15 @@ package com.example.android.quizapp;
 
 import java.util.List;
 
-/**
- * Created by eren.tatar on 27.02.2018.
- */
+class Question {
 
-public class Question {
+    private QuestionType questionType;
+    private String questionText;
+    private String imageName;
+    private List<String> choices;
+    private List<String> answers;
 
-    public QuestionType questionType;
-    public String questionText;
-    public String imageName;
-    public List<String> choices;
-    public List<String> answers;
-
-    public Question(QuestionType questionType, String questionText, String imageName, List<String> choices, List<String> answers) {
+    Question(QuestionType questionType, String questionText, String imageName, List<String> choices, List<String> answers) {
         this.questionType = questionType;
         this.questionText = questionText;
         this.imageName = imageName;
@@ -22,4 +18,23 @@ public class Question {
         this.answers = answers;
     }
 
+    QuestionType getQuestionType() {
+        return questionType;
+    }
+
+    String getQuestionText() {
+        return questionText;
+    }
+
+    String getImageName() {
+        return imageName;
+    }
+
+    List<String> getChoices() {
+        return choices;
+    }
+
+    List<String> getAnswers() {
+        return answers;
+    }
 }

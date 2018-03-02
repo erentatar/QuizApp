@@ -4,15 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Created by eren.tatar on 27.02.2018.
- */
-
-public class QuestionLibrary {
+class QuestionLibrary {
 
     private ArrayList<Question> questionList = new ArrayList<Question>();
 
-    public QuestionLibrary() {
+    QuestionLibrary() {
         questionList.add(new Question(QuestionType.SingleChoice,
                 "To which country does this flag belong?",
                 "flag",
@@ -50,11 +46,11 @@ public class QuestionLibrary {
                 Arrays.asList("Yes")));
     }
 
-    public List<Question> getQuestionList(){
+    List<Question> getQuestionList() {
         return questionList;
     }
 
-    public int getQuestionCount(){
+    int getQuestionCount() {
         return questionList.size();
     }
 }
